@@ -137,7 +137,7 @@ const ColorButton = withStyles((theme) => ({
   },
 }))(Button);
 
-const apiUrl = "//3.110.197.31/predict";
+const apiUrl = "http://localhost:8000/predict";
 
 const ImageUpload = () => {
   const classes = useStyles();
