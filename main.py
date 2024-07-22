@@ -8,14 +8,40 @@ from PIL import Image
 import tensorflow as tf
 import uvicorn
 
-# Define the FastAPI app
+def build_frontend():
+    frontend_dir = r"/home/ubuntu/mission-tomato/frontend"
+    npm_path = r"/usr/bin/npm"
+    
+    print(f"Building frontend in directory: {frontend_dir}")
+    
+    # Set NODE_OPTIONS environment variable
+    os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"
+    
+    # Run the npm build command
+    build_process = subprocess.run([npm_path, "run", "build"], cwd=frontend_dir, capture_output=True, text=True)
+    
+    if build_process.returncode == 0:
+        print("Frontend build succeeded")
+        print(build_process.stdout)
+    else:
+        print("Frontend build failed")
+        print(build_process.stderr)
+
+def start_frontend():
+    frontend_dir = r"/home/ubuntu/mission-tomato/frontend/build"
+    npm_path = r"/usr/bin/npm"
+    
+    print(f"Starting frontend in directory: {frontend_dir}")
+    subprocess.Popen([npm_path, "start"], cwd=frontend_dir)
+
+
 app = FastAPI()
 
 # Allow CORS for frontend accessibility
 origins = [
     "http://localhost",
     "http://localhost:3000",
-    "https://mission-tomato.pages.dev"
+    'https://mission-tomato.pages.dev'
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -25,11 +51,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load your TensorFlow model
-MODEL_PATH = "/home/ubuntu/mission-potato/saved_models/1"
+# Load your TensorFlow model using tf.saved_model
+MODEL_PATH = "saved_models/1"
 model = tf.saved_model.load(MODEL_PATH)
 
-# Define the class names
 CLASS_NAMES = [
     'Tomato_Bacterial_spot',
     'Tomato_Early_blight',
@@ -43,18 +68,23 @@ CLASS_NAMES = [
     'Tomato_healthy'
 ]
 
-# Function to read and process the image
 def read_file_as_image(data) -> np.ndarray:
     image = np.array(Image.open(BytesIO(data)))
     return image
 
-# Define the prediction endpoint
-@app.post("/api/predict")
-async def predict(file: UploadFile = File(...)):
+@app.post("/predict")
+async def predict(
+    file: UploadFile = File(...)
+):
     image = read_file_as_image(await file.read())
     img_batch = np.expand_dims(image, 0)
+
+    # Convert the image batch to float32 (if required by the model)
     img_batch = img_batch.astype(np.float32)
+
+    # Perform inference using the loaded model
     predictions = model(img_batch)
+
     predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
     confidence = np.max(predictions[0])
     return {
@@ -62,18 +92,9 @@ async def predict(file: UploadFile = File(...)):
         'confidence': float(confidence)
     }
 
-# Function to start the frontend
-def start_frontend():
-    frontend_dir = "/home/ubuntu/mission-potato/frontend"
-    # Build the frontend
-    subprocess.run(["npm", "install"], cwd=frontend_dir)
-    subprocess.run(["npm", "run", "build"], cwd=frontend_dir)
-    # Serve the frontend build directory
-    subprocess.Popen(["npx", "serve", "-s", "build"], cwd=os.path.join(frontend_dir, "build"))
-
-# Start the frontend in a separate process
-start_frontend()
-
-# Run the FastAPI app
 if __name__ == "__main__":
+    # Build the frontend
+    build_frontend()
+    
+    # Start the FastAPI app
     uvicorn.run(app, host='0.0.0.0', port=8000)
