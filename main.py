@@ -1,43 +1,18 @@
 import subprocess
 import os
+import uvicorn
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import numpy as np
 from io import BytesIO
 from PIL import Image
 import tensorflow as tf
-import uvicorn
-
-def build_frontend():
-    frontend_dir = r"/home/ubuntu/mission-tomato/frontend"
-    npm_path = r"/usr/bin/npm"
-    
-    print(f"Building frontend in directory: {frontend_dir}")
-    
-    # Set NODE_OPTIONS environment variable
-    os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"
-    
-    # Run the npm build command
-    build_process = subprocess.run([npm_path, "run", "build"], cwd=frontend_dir, capture_output=True, text=True)
-    
-    if build_process.returncode == 0:
-        print("Frontend build succeeded")
-        print(build_process.stdout)
-    else:
-        print("Frontend build failed")
-        print(build_process.stderr)
-
-def start_frontend():
-    frontend_dir = r"/home/ubuntu/mission-tomato/frontend/build"
-    npm_path = r"/usr/bin/npm"
-    
-    print(f"Starting frontend in directory: {frontend_dir}")
-    subprocess.Popen([npm_path, "start"], cwd=frontend_dir)
-
 
 app = FastAPI()
 
-# Allow CORS for frontend accessibility
+# CORS configuration
 origins = [
     "http://localhost",
     "http://localhost:3000",
@@ -51,10 +26,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load your TensorFlow model using tf.saved_model
+# Path to the model directory
 MODEL_PATH = "saved_models/1"
+
+# Load the model
 model = tf.saved_model.load(MODEL_PATH)
 
+# Class names for the predictions
 CLASS_NAMES = [
     'Tomato_Bacterial_spot',
     'Tomato_Early_blight',
@@ -73,9 +51,7 @@ def read_file_as_image(data) -> np.ndarray:
     return image
 
 @app.post("/predict")
-async def predict(
-    file: UploadFile = File(...)
-):
+async def predict(file: UploadFile = File(...)):
     image = read_file_as_image(await file.read())
     img_batch = np.expand_dims(image, 0)
 
@@ -91,6 +67,32 @@ async def predict(
         'class': predicted_class,
         'confidence': float(confidence)
     }
+
+def build_frontend():
+    frontend_dir = "/home/ubuntu/mission-tomato/frontend"
+    npm_path = "/usr/bin/npm"
+    
+    print(f"Building frontend in directory: {frontend_dir}")
+    
+    # Set NODE_OPTIONS environment variable
+    os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"
+    
+    # Run the npm build command
+    build_process = subprocess.run([npm_path, "run", "build"], cwd=frontend_dir, capture_output=True, text=True, env=os.environ)
+    
+    if build_process.returncode == 0:
+        print("Frontend build succeeded")
+        print(build_process.stdout)
+    else:
+        print("Frontend build failed")
+        print(build_process.stderr)
+
+# Serve the React app's static files
+app.mount("/static", StaticFiles(directory="frontend/build/static"), name="static")
+
+@app.get("/")
+async def serve_index():
+    return FileResponse("frontend/build/index.html")
 
 if __name__ == "__main__":
     # Build the frontend
