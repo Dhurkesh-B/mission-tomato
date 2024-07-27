@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 import numpy as np
 from io import BytesIO
 from PIL import Image
-import tensorflow as tf
+import requests
 
 app = FastAPI()
 
@@ -26,13 +26,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Path to the model directory
-MODEL_PATH = "saved_models/1"
+# TensorFlow Serving endpoint
+TF_SERVING_ENDPOINT = 'http://localhost:5000/v1/models/tomato_model:predict'
 
-# Load the model
-model = tf.saved_model.load(MODEL_PATH)
-
-# Class names for the predictions
+# Class names for predictions
 CLASS_NAMES = [
     'Tomato_Bacterial_spot',
     'Tomato_Early_blight',
@@ -52,40 +49,38 @@ def read_file_as_image(data) -> np.ndarray:
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    image = read_file_as_image(await file.read())
-    img_batch = np.expand_dims(image, 0)
+    try:
+        image = read_file_as_image(await file.read())
+        img_batch = np.expand_dims(image, 0).astype(np.float32)
 
-    # Convert the image batch to float32 (if required by the model)
-    img_batch = img_batch.astype(np.float32)
+        # Prepare JSON data for TensorFlow Serving
+        json_data = {'instances': img_batch.tolist()}
 
-    # Perform inference using the loaded model
-    predictions = model(img_batch)
+        # Send POST request to TensorFlow Serving endpoint
+        response = requests.post(TF_SERVING_ENDPOINT, json=json_data)
 
-    predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
-    confidence = np.max(predictions[0])
-    return {
-        'class': predicted_class,
-        'confidence': float(confidence)
-    }
+        # Check if response is successful
+        if response.status_code != 200:
+            return {"error": f"Prediction failed with status code {response.status_code}"}
 
-def build_frontend():
-    frontend_dir = "/home/ubuntu/mission-tomato/frontend"
-    npm_path = "/usr/bin/npm"
-    
-    print(f"Building frontend in directory: {frontend_dir}")
-    
-    # Set NODE_OPTIONS environment variable
-    os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"
-    
-    # Run the npm build command
-    build_process = subprocess.run([npm_path, "run", "build"], cwd=frontend_dir, capture_output=True, text=True, env=os.environ)
-    
-    if build_process.returncode == 0:
-        print("Frontend build succeeded")
-        print(build_process.stdout)
-    else:
-        print("Frontend build failed")
-        print(build_process.stderr)
+        # Parse predictions from response
+        predictions = response.json().get('predictions')
+
+        if not predictions:
+            return {"error": "No predictions found in response"}
+
+        # Extract predicted class and confidence
+        prediction = np.array(predictions[0])
+        predicted_class = CLASS_NAMES[np.argmax(prediction)]
+        confidence = np.max(prediction)
+
+        return {
+            'class': predicted_class,
+            'confidence': float(confidence)
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
 
 # Serve the React app's static files
 app.mount("/static", StaticFiles(directory="frontend/build/static"), name="static")
@@ -95,8 +90,5 @@ async def serve_index():
     return FileResponse("frontend/build/index.html")
 
 if __name__ == "__main__":
-    # Build the frontend
-    build_frontend()
-    
     # Start the FastAPI app
     uvicorn.run(app, host='0.0.0.0', port=8000)
