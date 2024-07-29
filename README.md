@@ -32,7 +32,7 @@ The core of the project is the CNN model trained to classify potato leaf images 
 
 ## Project Architecture
 
-![Project architecture](project_architecture.png)
+![Project architecture](project-architecture.png)
 
 
 ## Technical Workflow
