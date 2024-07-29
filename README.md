@@ -5,7 +5,7 @@ Mission Tomato is a full-stack application designed to predict tomato leaf disea
 ## Project Components
 
 ### 1. Frontend Application
-The frontend of the application is developed using React and Material-UI. It provides a user-friendly interface where users can upload images of potato leaves and receive predictions about the health of the plants.
+The frontend of the application is developed using React and Material-UI. It provides a user-friendly interface where users can upload images of tomato leaves and receive predictions about the health of the plants.
 
 **Key features of the frontend:**
 - **Image Upload:** Users can select an image file from their device and upload it.
@@ -22,7 +22,7 @@ The backend is implemented using FastAPI, a modern web framework for building AP
 - **Prediction Handling:** The model returns predictions which are then formatted and sent back to the frontend.
 
 ### 3. Machine Learning Model
-The core of the project is the CNN model trained to classify potato leaf images into three categories: `Potato___Early_blight`, `Potato___Late_blight`, and `Potato___healthy`. This model is served using TensorFlow Serving in a Docker container, ensuring scalability and easy deployment.
+The core of the project is the CNN model trained to classify tomato leaf images into ten categories: `Tomato_Bacterial_spot`, `Tomato_Early_blight`, `Tomato_Late_blight`, `Tomato_Leaf_Mold`, `Tomato_Septoria_leaf_spot`, `Tomato_Spider_mites_Two_spotted_spider_mite`, `Tomato__Target_Spot`, `Tomato__Tomato_YellowLeaf__Curl_Virus`, `Tomato__Tomato_mosaic_virus` and `Tomato_healthy`. This model is served using TensorFlow Serving in a Docker container, ensuring scalability and easy deployment.
 
 ## Project User Inteface
 
@@ -36,7 +36,7 @@ The core of the project is the CNN model trained to classify potato leaf images 
 
 
 ## Technical Workflow
-1. **User Interaction:** The user uploads an image of a potato leaf via the React-based frontend.
+1. **User Interaction:** The user uploads an image of a tomato leaf via the React-based frontend.
 2. **Image Upload:** The image is sent to the FastAPI backend.
 3. **Image Processing:** The backend processes the image and prepares it for prediction.
 4. **Model Prediction:** The processed image is sent to the TensorFlow Serving model in Docker.
@@ -49,7 +49,7 @@ The core of the project is the CNN model trained to classify potato leaf images 
 - **Scalability:** Docker and TensorFlow Serving allow for scalable and efficient model deployment.
 - **Cross-Origin Resource Sharing (CORS):** The backend supports CORS, enabling smooth interaction between the frontend and backend hosted on different servers.
 
-Mission Potato leverages cutting-edge technologies to provide an efficient solution for potato disease detection, aiding farmers in maintaining crop health and improving agricultural productivity.
+Mission-Tomato leverages cutting-edge technologies to provide an efficient solution for tomato disease detection, aiding farmers in maintaining crop health and improving agricultural productivity.
 
 ## Getting Started
 
@@ -63,8 +63,8 @@ Mission Potato leverages cutting-edge technologies to provide an efficient solut
 
 1. **Clone the repository:**
     ```sh
-    git clone https://github.com/Dhurkesh-B/mission-potato.git
-    cd mission-potato
+    git clone https://github.com/Dhurkesh-B/mission-tomato
+    cd mission-tomato
     ```
 
 2. **Setup Frontend:**
@@ -76,7 +76,7 @@ Mission Potato leverages cutting-edge technologies to provide an efficient solut
 
 3. **Setup Backend:**
     ```sh
-    cd ../api
+    cd ..
     pip install -r requirements.txt
     uvicorn main:app --reload
     ```
@@ -84,14 +84,14 @@ Mission Potato leverages cutting-edge technologies to provide an efficient solut
 4. **Setup TensorFlow Serving:**
     ```sh
     docker pull tensorflow/serving
-    docker run -t -p 5000:5000 -v C:\Users\dhurk\OneDrive\project-potato:/project-potato tensorflow/serving --rest_api_port=5000 --model_config_file=/project-potato/models.config.a
+    docker run -t -p 5000:5000 -v C:\Users\dhurk\OneDrive\mission-tomato:/mission-tomato tensorflow/serving --rest_api_port=5000 --model_config_file=/mission-tomato/models.config.a
     ```
 
 ### Usage
 
 1. **Upload Image:**
    - Access the React frontend at `http://localhost:3000`.
-   - Upload an image of a potato leaf.
+   - Upload an image of a tomato leaf.
 
 2. **Get Predictions:**
    - The backend processes the image and gets predictions from the TensorFlow Serving model.
