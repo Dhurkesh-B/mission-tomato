@@ -1,4 +1,4 @@
-# Mission Tomato Project
+# Mission Tomato 
 
 Mission Tomato is a full-stack application designed to predict tomato leaf diseases using a convolutional neural network (CNN) model. The application consists of a React frontend, a FastAPI backend, and a TensorFlow Serving setup for model predictions. The project is deployed on AWS using two instances: one for TensorFlow Serving in Docker and another for the frontend and backend.
 
